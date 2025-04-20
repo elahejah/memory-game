@@ -54,6 +54,12 @@
     const TOTAL_ROUNDS = 30;
     const CORRECT_IMAGES = Array.from({length:49}, (_,i)=>`correct_${i}.jpg`); // put these images in same folder
     const INCORRECT_IMAGES = Array.from({length:49}, (_,i)=>`incorrect_${i}.jpg`);
+    const CORRECT_IMAGES = Array.from({length:49}, (_,i)=>`correct_${i}.jpg`);
+    const INCORRECT_IMAGES = Array.from({length:49}, (_,i)=>`incorrect_${i}.jpg`);
+    [...CORRECT_IMAGES, ...INCORRECT_IMAGES].forEach(src => {
+    const img = new Image();
+      img.src = src;
+    });
     const scoreElem = document.getElementById('score');
     const roundElem = document.getElementById('round');
     const feedbackElem = document.getElementById('feedback');
