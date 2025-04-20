@@ -1,164 +1,123 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=800, initial-scale=1.0, maximum-scale=1.0">
-  <title>Memory Game</title>
-  <style>
-    body {
-      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-      min-height: 100vh; background: #f6f6f6; font-family: sans-serif; margin:0;
-    }
-    #game-area { margin-top: 25px; width: 800px; }
-    .scorebar, .feedback { text-align:center; margin-bottom: 20px; }
-    .scorebar span { margin: 0 15px; font-size: 1.15rem; font-weight: bold; }
-    .images-row {
-      display: flex; justify-content: space-between; align-items: center;
-      margin: 20px 0 30px 0;
-    }
-    .img-btn {
-      width: 300px; height: 300px; border: 5px solid #e1e1e1;
-      border-radius: 11px; background: #fff; box-shadow: 0 3px 15px #ddd;
-      cursor: pointer; transition: border 0.3s;
-    }
-    .img-btn.selected { border: 5px solid #1f9d1f; }
-    .feedback {
-      min-height: 38px; font-size: 2.1rem; font-weight: bold;
-      height: 44px; line-height: 44px;
-    }
-    .feedback.correct { color: #189d2e;}
-    .feedback.incorrect { color: #bf2424;}
-    @media (max-width:850px) {
-      #game-area { width: 98vw;}
-      .images-row { flex-direction: column;}
-      .img-btn {width: 96vw; max-width: 360px; height: 40vw; max-height: 360px; margin-bottom: 15px;}
-    }
-  </style>
-</head>
-<body>
-  <div id="game-area">
-    <div class="scorebar">
-      <span id="round"></span>
-      <span id="score"></span>
-    </div>
-    <div class="images-row">
-      <img id="img-left" class="img-btn" src="" alt="Option left">
-      <img id="img-right" class="img-btn" src="" alt="Option right">
-    </div>
-    <div id="feedback" class="feedback"></div>
-    <audio id="audio-correct" src="correct.mp3" preload="auto"></audio>
-    <audio id="audio-wrong" src="wrong.mp3" preload="auto"></audio>
-  </div>
-  <script>
-    // Settings
-    const TOTAL_ROUNDS = 30;
-    const CORRECT_IMAGES = Array.from({length:49}, (_,i)=>`correct_${i}.jpg`); // put these images in same folder
-    const INCORRECT_IMAGES = Array.from({length:49}, (_,i)=>`incorrect_${i}.jpg`);
-    const scoreElem = document.getElementById('score');
-    const roundElem = document.getElementById('round');
-    const feedbackElem = document.getElementById('feedback');
-    const imgLeft = document.getElementById('img-left');
-    const imgRight = document.getElementById('img-right');
-    const audioCorrect = document.getElementById('audio-correct');
-    const audioWrong = document.getElementById('audio-wrong');
+import pygame
+import random
+import sys
 
-    let score = 0;
-    let curRound = 0;
-    let choosing = true;
-    let rounds = [];
+pygame.init()
 
-    // Generate rounds same as Python
-    function randomItem(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
-    for(let i=0; i<TOTAL_ROUNDS; ++i) {
-      let correctImg = randomItem(CORRECT_IMAGES);
-      let incorrectImg = randomItem(INCORRECT_IMAGES);
-      let correctSide = Math.random()<0.5 ? "left" : "right";
-      rounds.push({correctImg, incorrectImg, correctSide});
-    }
+WIDTH, HEIGHT = 800, 600
+WHITE = (255, 255, 255)
+FPS = 30
 
-    function updateBar() {
-      roundElem.textContent = `Round: ${curRound+1}/${TOTAL_ROUNDS}`;
-      scoreElem.textContent = `Score: ${score}`;
-    }
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Memory game")
+clock = pygame.time.Clock()
 
-    function setImages(info) {
-      if(info.correctSide === 'left') {
-        imgLeft.src = info.correctImg;
-        imgRight.src = info.incorrectImg;
-        imgLeft.dataset.correct = "1";
-        imgRight.dataset.correct = "0";
-      } else {
-        imgLeft.src = info.incorrectImg;
-        imgRight.src = info.correctImg;
-        imgLeft.dataset.correct = "0";
-        imgRight.dataset.correct = "1";
-      }
-      imgLeft.classList.remove("selected");
-      imgRight.classList.remove("selected");
-    }
+correct_sound = pygame.mixer.Sound("correct.wav")
+wrong_sound = pygame.mixer.Sound("wrong.wav")
 
-    function showFeedback(isCorrect) {
-      feedbackElem.textContent = isCorrect ? "Correct!" : "Incorrect!";
-      feedbackElem.className = "feedback " + (isCorrect ? "correct" : "incorrect");
-    }
+correct_images = [f"correct_{i}.jpg" for i in range(49)]
+incorrect_images = [f"incorrect_{i}.jpg" for i in range(49)]
 
-    function resetFeedback() {
-      feedbackElem.textContent = "";
-      feedbackElem.className = "feedback";
-    }
+rounds = []
+for _ in range(30):
+    correct_img = random.choice(correct_images)
+    incorrect_img = random.choice(incorrect_images)
+    correct_side = random.choice(["left", "right"])
+    rounds.append((correct_img, incorrect_img, correct_side))
 
-    function playSound(isCorrect) {
-      // If needed (for Chrome/Edge): trigger sound only after a user gesture
-      if(isCorrect) { audioCorrect.currentTime=0; audioCorrect.play(); }
-      else { audioWrong.currentTime=0; audioWrong.play(); }
-    }
+score = 0
+font = pygame.font.SysFont(None, 48)
+small_font = pygame.font.SysFont(None, 36)  # Smaller font for in-game display
 
-    function nextRound() {
-      if(curRound >= TOTAL_ROUNDS) {
-        showFinal();
-        return;
-      }
-      choosing = true;
-      resetFeedback();
-      updateBar();
-      setImages(rounds[curRound]);
-    }
+def show_score():
+    screen.fill(WHITE)
+    text = font.render(f"Your Score: {score}/300", True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2))
+    pygame.display.flip()
+    pygame.time.wait(5000)
 
-    function handleChoice(side) {
-      if(!choosing) return;
-      choosing = false;
-      let isCorrect = (side === "left" && imgLeft.dataset.correct==="1") ||
-                      (side === "right" && imgRight.dataset.correct==="1");
-      if(isCorrect) score+=10; else score-=10;
-      playSound(isCorrect);
-      showFeedback(isCorrect);
-      (side==="left"?imgLeft:imgRight).classList.add("selected");
-      setTimeout(()=>{
-        curRound++;
-        nextRound();
-      }, 500); // نیم ثانیه توقف پس از کلیک کاربر
-    }
+def display_game_info(current_round):
+    round_text = small_font.render(f"Round: {current_round + 1}/30", True, (0, 0, 0))
+    screen.blit(round_text, (20, 20))
+    score_text = small_font.render(f"Score: {score}", True, (0, 0, 0))
+    screen.blit(score_text, (WIDTH - 20 - score_text.get_width(), 20))
 
-    imgLeft.onclick = ()=>handleChoice("left");
-    imgRight.onclick = ()=>handleChoice("right");
+# تابع بازخورد با مکث فقط ۰.۵ ثانیه
+def show_feedback(is_correct, current_score):
+    screen.fill(WHITE)
+    feedback_text = "درست!" if is_correct else "غلط!"
+    color = (0, 170, 0) if is_correct else (220, 0, 0)
+    text = font.render(feedback_text, True, color)
+    score_display = small_font.render(f"امتیاز: {current_score}", True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 40))
+    screen.blit(score_display, (WIDTH // 2 - score_display.get_width() // 2, HEIGHT // 2 + 40))
+    pygame.display.flip()
+    pygame.time.wait(500)  # فقط ۰.۵ ثانیه مکث
 
-    function showFinal() {
-      imgLeft.style.display = "none";
-      imgRight.style.display = "none";
-      roundElem.textContent = "";
-      feedbackElem.textContent = `Game Over! Your Score: ${score}/${TOTAL_ROUNDS*10}`;
-      feedbackElem.className = "feedback";
-      scoreElem.textContent = "";
-    }
+current_round = 0
+running = True
 
-    // Keyboard support: left/right arrow or A/D
-    window.addEventListener('keydown', e => {
-      if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a") handleChoice("left");
-      if(e.key==="ArrowRight"||e.key.toLowerCase()==="d") handleChoice("right");
-    });
+while running and current_round < 30:
+    screen.fill(WHITE)
 
-    // Start the game
-    nextRound();
-  </script>
-</body>
-</html>
+    correct_img_path, incorrect_img_path, correct_side = rounds[current_round]
+
+    correct_img = pygame.image.load(correct_img_path)
+    incorrect_img = pygame.transform.scale(correct_img, (300, 300))
+    incorrect_img = pygame.image.load(incorrect_img_path)
+    incorrect_img = pygame.transform.scale(incorrect_img, (300, 300))
+
+    if correct_side == "left":
+        left_img, right_img = correct_img, incorrect_img
+        correct_choice = "left"
+    else:
+        left_img, right_img = incorrect_img, correct_img
+        correct_choice = "right"
+
+    display_game_info(current_round)
+
+    left_rect = screen.blit(left_img, (75, 150))
+    right_rect = screen.blit(right_img, (WIDTH - 375, 150))
+    pygame.display.flip()
+
+    clicked = False
+    while not clicked:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                clicked = True
+                break
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if left_rect.collidepoint(mouse_pos):
+                    if correct_choice == "left":
+                        correct_sound.play()
+                        score += 10
+                        show_feedback(True, score)
+                    else:
+                        wrong_sound.play()
+                        score -= 10
+                        show_feedback(False, score)
+                    current_round += 1
+                    clicked = True
+                    break
+                elif right_rect.collidepoint(mouse_pos):
+                    if correct_choice == "right":
+                        correct_sound.play()
+                        score += 10
+                        show_feedback(True, score)
+                    else:
+                        wrong_sound.play()
+                        score -= 10
+                        show_feedback(False, score)
+                    current_round += 1
+                    clicked = True
+                    break
+        clock.tick(FPS)
+
+if running:
+    show_score()
+
+pygame.quit()
+sys.exit()
