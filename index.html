@@ -98,7 +98,7 @@
     }
 
     function showFeedback(isCorrect) {
-      feedbackElem.textContent = isCorrect ? "correct" : "incorrect";
+      feedbackElem.textContent = isCorrect ? "Correct!" : "Incorrect!";
       feedbackElem.className = "feedback " + (isCorrect ? "correct" : "incorrect");
     }
 
@@ -108,6 +108,7 @@
     }
 
     function playSound(isCorrect) {
+      // If needed (for Chrome/Edge): trigger sound only after a user gesture
       if(isCorrect) { audioCorrect.currentTime=0; audioCorrect.play(); }
       else { audioWrong.currentTime=0; audioWrong.play(); }
     }
@@ -135,7 +136,7 @@
       setTimeout(()=>{
         curRound++;
         nextRound();
-      }, 500); // فقط نیم ثانیه مکث قبل از رفتن به عکس بعدی
+      }, 500); // نیم ثانیه توقف پس از کلیک کاربر
     }
 
     imgLeft.onclick = ()=>handleChoice("left");
